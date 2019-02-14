@@ -37,9 +37,31 @@ class FilterTabBar: UIControl {
     }()
 
     /// Titles of tabs to display.
+    /// Implicitly adds accessibilityIdentifiers to tab bar items, but
+    /// it's preferable to use `tabBarItems:` instead.
     ///
     @IBInspectable var items: [String] = [] {
         didSet {
+            self.tabBarItems = items.map{
+                Item(title: $0, accessibilityIdentifier: $0.localizedLowercase)
+            }
+
+            refreshTabs()
+        }
+    }
+
+    struct Item {
+        let title: String
+        let accessibilityIdentifier: String?
+
+        init(title: String, accessibilityIdentifier: String?) {
+            self.title = title
+            self.accessibilityIdentifier = accessibilityIdentifier
+        }
+    }
+
+    var tabBarItems: [Item] = []{
+        didSet{
             refreshTabs()
         }
     }
@@ -143,15 +165,6 @@ class FilterTabBar: UIControl {
     }
 
     // MARK: - Initialization
-
-    init(items: [String]) {
-        self.items = items
-
-        super.init(frame: .zero)
-
-        refreshTabs()
-    }
-
     required init?(coder aDecoder: NSCoder) {
         super.init(coder: aDecoder)
 
@@ -205,20 +218,23 @@ class FilterTabBar: UIControl {
 
     private func refreshTabs() {
         tabs.forEach({ $0.removeFromSuperview() })
-        tabs = items.map(makeTab(_:))
-        tabs.forEach(stackView.addArrangedSubview(_:))
+        tabs = tabBarItems.map(makeTab)
+        tabs.forEach(stackView.addArrangedSubview)
 
         layoutIfNeeded()
 
         setSelectedIndex(selectedIndex, animated: false)
     }
 
-    private func makeTab(_ title: String) -> UIButton {
+    private func makeTab(_ item: Item) -> UIButton {
+
         let tab = TabBarButton(type: .custom)
-        tab.setTitle(title, for: .normal)
+        tab.setTitle(item.title, for: .normal)
         tab.setTitleColor(titleColorForSelected, for: .selected)
         tab.setTitleColor(deselectedTabColor, for: .normal)
         tab.tintColor = tintColor
+
+        tab.accessibilityIdentifier = item.accessibilityIdentifier
 
         tab.contentEdgeInsets = AppearanceMetrics.buttonInsets
         tab.sizeToFit()
